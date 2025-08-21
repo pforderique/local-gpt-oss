@@ -1,0 +1,11 @@
+# Large artifacts
+models/**
+*.safetensors
+*.bin
+*.gguf
+*.pt
+
+# Caches
+__pycache__/
+.ipynb_checkpoints/
+bench/results/*.tmp
