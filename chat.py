@@ -2,6 +2,8 @@
 
 import argparse
 import dataclasses
+import sys
+import threading
 
 from mlx_lm.utils import load
 from openai_harmony import Message, Role
@@ -15,6 +17,43 @@ ASSISTANT_CLI_PROMPT = "ChatGPT: "
 QUIT_COMMANDS = ["exit", "quit", "q"]
 
 FINAL_MESSAGE_SIGNAL = "final<|message|>"
+THINKING_TEXT = "thinking"
+
+
+class ThinkingAnimation:
+    """A simple thinking animation that runs in a separate thread."""
+
+    def __init__(self, prefix: str):
+        self.prefix = prefix
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self._run, daemon=True)
+
+    def _run(self):
+        dots = ["", ".", "..", "..."]
+        i = 0
+        # prefix already printed by caller
+        while not self.stop_event.is_set():
+            d = dots[i % len(dots)]
+            pad = " " * (3 - len(d))  # overwrite previous longer state
+            sys.stdout.write(f"\r{self.prefix}{THINKING_TEXT}{d}{pad}")
+            sys.stdout.flush()
+            i += 1
+            self.stop_event.wait(0.3)
+
+    def start(self):
+        """Start the thinking animation."""
+        self.thread.start()
+
+    def stop(self):
+        """Idempotent stop method for the thinking animation."""
+
+        if self.stop_event.is_set():
+            return
+        self.stop_event.set()
+        self.thread.join(timeout=1)
+        # Clear the 'thinking...' area
+        sys.stdout.write(f"\r{self.prefix}{' ' * (len(THINKING_TEXT) + 3)}\r{self.prefix}")
+        sys.stdout.flush()
 
 
 @dataclasses.dataclass
@@ -33,6 +72,8 @@ def create_arg_parser():
                         help="show thoughts during generation")
     parser.add_argument("--stream", action="store_true",
                         help="stream responses from the model")
+    parser.add_argument("--no_animate", action="store_true",
+                        help="disable animation of 'thinking...' while waiting")
     # decoding options
     parser.add_argument("--max_tokens", type=int, default=None,
                         help="maximum number of tokens to generate")
@@ -56,6 +97,13 @@ def _print_header():
     print("=" * header_len, "ChatGPT OSS 20B", "=" * header_len)
     print(f"Type '{QUIT_COMMANDS[0]}' to quit.")
     print()
+
+
+def _write_response(response: str, animation: ThinkingAnimation) -> None:
+    """Write the response to the standard output."""
+    animation.stop()
+    sys.stdout.write(response)
+    sys.stdout.flush()
 
 
 def main(args: argparse.Namespace) -> int:
@@ -85,7 +133,12 @@ def main(args: argparse.Namespace) -> int:
     print("loaded.")
 
     while (user_input := input(f"\n{USER_CLI_PROMPT}")) not in QUIT_COMMANDS:
-        print(f"{ASSISTANT_CLI_PROMPT}", end="", flush=True)
+        sys.stdout.write(ASSISTANT_CLI_PROMPT)
+        sys.stdout.flush()
+
+        animation = ThinkingAnimation(prefix=ASSISTANT_CLI_PROMPT)
+        if not args.no_animate:
+            animation.start()
 
         stream = stream_generate(
             model=model,
@@ -109,7 +162,7 @@ def main(args: argparse.Namespace) -> int:
                 continue
 
             if can_print_stream:
-                print(text, end="", flush=True)
+                _write_response(text, animation)
 
             # Always stream print the final message
             if FINAL_MESSAGE_SIGNAL in "".join(buf[-2:]):
@@ -125,14 +178,13 @@ def main(args: argparse.Namespace) -> int:
 
         if args.stream:
             print()
-            continue
 
         if args.with_thoughts:
-            print(full_response)
+            _write_response(full_response, animation)
             continue
 
         _, final_message = full_response.split(FINAL_MESSAGE_SIGNAL, maxsplit=1)
-        print(final_message)
+        _write_response(final_message, animation)
 
     return 0
 
