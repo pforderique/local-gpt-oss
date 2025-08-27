@@ -11,7 +11,7 @@ from openai_harmony import (
 )
 
 
-_enc = load_harmony_encoding(HarmonyEncodingName.HARMONY_GPT_OSS)
+HARMONY_ENCODER = load_harmony_encoding(HarmonyEncodingName.HARMONY_GPT_OSS)
 
 
 def harmonize_user_input(
@@ -38,8 +38,8 @@ def harmonize_user_input(
         Message.from_role_and_content(Role.USER, user_input)
     )
 
-    return _enc.decode_utf8(
-        _enc.render_conversation_for_completion(conversation, Role.ASSISTANT)
+    return HARMONY_ENCODER.decode_utf8(
+        HARMONY_ENCODER.render_conversation_for_completion(conversation, Role.ASSISTANT)
     )
 
 
