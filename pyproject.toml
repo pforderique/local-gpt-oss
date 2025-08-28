@@ -7,12 +7,20 @@ name = "local_gpt_oss"
 version = "0.1.0"
 description = "Optimized gpt oss 20b for local inference"
 requires-python = ">=3.9"
-dependencies = ["mlx-lm>=0.14", "openai-harmony", "numpy", "tqdm"]
+dependencies = [
+  "mlx-lm>=0.14",
+  "openai-harmony",
+  "numpy",
+  "tqdm",
+  "pandas",
+  "matplotlib"
+]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0",
   "pytest-cov",
+  "ipykernel",
 ]
 
 [tool.setuptools]
