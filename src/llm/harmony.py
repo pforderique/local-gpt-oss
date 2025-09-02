@@ -21,8 +21,9 @@ def harmonize_user_input(
     """
     Harmonize user input for the OpenAI Harmony API.
 
-    Appends the user input to the conversation context and returns the full
-    conversation context as a string.
+    Appends the user input, if given, to the conversation context and returns
+    the full conversation context as a string. If no conversation context is
+    provided, a simple one is created.
 
     Args:
         user_input: The user input to harmonize.
@@ -34,9 +35,10 @@ def harmonize_user_input(
     if not conversation:
         conversation = StarterConversations.basic_system_only()
 
-    conversation.messages.append(
-        Message.from_role_and_content(Role.USER, user_input)
-    )
+    if not user_input:
+        conversation.messages.append(
+            Message.from_role_and_content(Role.USER, user_input)
+        )
 
     return HARMONY_ENCODER.decode_utf8(
         HARMONY_ENCODER.render_conversation_for_completion(conversation, Role.ASSISTANT)
