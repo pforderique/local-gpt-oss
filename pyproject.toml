@@ -13,7 +13,14 @@ dependencies = [
   "numpy",
   "tqdm",
   "pandas",
-  "matplotlib"
+  "matplotlib",
+  "faster-whisper",
+  "sounddevice",
+  "soundfile",
+  "torch",
+  "torchaudio",
+  "transformers",
+  "sentencepiece"
 ]
 
 [project.optional-dependencies]
