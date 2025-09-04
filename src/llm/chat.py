@@ -7,10 +7,10 @@ import threading
 import time
 
 from mlx_lm.utils import load
-from openai_harmony import Message, Role
+from openai_harmony import Conversation, Message, Role
 
 from llm.generate import stream_generate, DecodingControls
-from llm.harmony import Conversation, StarterConversations
+from llm.harmony import StarterConversations
 
 
 USER_CLI_PROMPT = "User: "
@@ -144,7 +144,6 @@ class Chat:
             metrics.peak_memory = res.peak_memory if res else 0
 
             full_response = "".join(buf)
-            print(buf)
 
             # pylint: disable=no-member
             self.context_conversation.messages.append(
