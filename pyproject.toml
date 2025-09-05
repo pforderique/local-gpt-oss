@@ -20,7 +20,9 @@ dependencies = [
   "torch",
   "torchaudio",
   "transformers",
-  "sentencepiece"
+  "sentencepiece",
+  "python-dotenv",
+  "spotipy"
 ]
 
 [project.optional-dependencies]
