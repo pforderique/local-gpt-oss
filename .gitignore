@@ -9,7 +9,11 @@ models/**
 __pycache__/
 .ipynb_checkpoints/
 bench/results/*.tmp
+cache/**
 
 # Python artifacts
 *.egg-info/
 dist/
+
+# Secrets
+.env
