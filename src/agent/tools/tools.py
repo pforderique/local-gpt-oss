@@ -9,35 +9,45 @@ from openai_harmony import ToolDescription
 
 ToolFn = Callable[[dict[str, Any]], Any]
 
-_REGISTRY: dict[str, tuple[ToolFn, str, dict[str, Any]]] = {}
 
+class Tools:
+    """Registry of all tool functions."""
+    REGISTRY: dict[str, tuple[ToolFn, str, dict[str, Any]]] = {}
+    _INSTANCE = None
 
-def register_tool(name: str, description: str, parameters: dict[str, Any]):
-    """Decorator to register a tool function with metadata."""
-    def deco(fn: ToolFn):
-        _REGISTRY[name] = (fn, description, parameters)
-        return fn
-    return deco
+    def __init__(self):
+        if Tools._INSTANCE is not None:
+            return
 
-def call(name: str, args: dict[str, Any]) -> str:
-    """Dispatch to a registered tool and always return JSON text."""
-    if name not in _REGISTRY:
-        raise ValueError(f"Unknown tool: {name}")
-    fn = _REGISTRY[name][0]
-    out = fn(args)
-    return out if isinstance(out, str) else json.dumps(out)
+        Tools._INSTANCE = self
 
-def get_tool_descriptions() -> list[ToolDescription]:
-    """Return Harmony ToolDescription objects for all registered tools."""
-    descs: list[ToolDescription] = []
-    for name, (_, description, schema) in _REGISTRY.items():
-        descs.append(ToolDescription.new(name, description, parameters=schema))
-    return descs
+    @classmethod
+    def call(cls, name: str, args: dict[str, Any]) -> str:
+        """Dispatch to a registered tool and always return JSON text."""
+        if name not in Tools.REGISTRY:
+            raise ValueError(f"Unknown tool: {name}")
+        fn = Tools.REGISTRY[name][0]
+        out = fn(args)
+        return out if isinstance(out, str) else json.dumps(out)
 
+    @classmethod
+    def get_tool_descriptions(cls) -> list[ToolDescription]:
+        """Return Harmony ToolDescription objects for all registered tools."""
+        descs: list[ToolDescription] = []
+        for name, (_, description, schema) in Tools.REGISTRY.items():
+            descs.append(ToolDescription.new(name, description, parameters=schema))
+        return descs
 
-# ---------------- Available tools ----------------
+    @classmethod
+    def register(cls, name: str, description: str, parameters: dict[str, Any]):
+        """Decorator to register a tool function with metadata."""
+        def deco(fn: ToolFn):
+            Tools.REGISTRY[name] = (fn, description, parameters)
+            return fn
 
-@register_tool(
+        return deco
+
+@Tools.register(
     name="get_current_weather",
     description="Gets the current weather in the provided location.",
     parameters={
@@ -65,7 +75,7 @@ def get_current_weather(args: dict[str, Any]) -> dict[str, Any]:
     temp = temp_c if unit == "celsius" else (temp_c * 9 / 5) + 32
     return {"location": loc, "temperature": temp, "unit": unit, "sunny": True}
 
-@register_tool(
+@Tools.register(
     name="get_time",
     description="Gets the current time in the provided location.",
     parameters={
@@ -95,7 +105,7 @@ def get_time(args: dict[str, Any]) -> dict[str, Any]:
         time_str = time.strftime("%H:%M", curr_time)
     return {"location": loc, "time": time_str, "format": fmt}
 
-@register_tool(
+@Tools.register(
     name="get_stock_price",
     description="Gets the current stock price (USD) for a given company.",
     parameters={
